@@ -3,3 +3,6 @@ build:
 
 push:
 	@docker push nlopez/media-toolbox
+
+run:
+	@docker run -it nlopez/media-toolbox
