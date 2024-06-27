@@ -1,7 +1,7 @@
 build:
 	@docker build -t nlopez/media-toolbox .
 
-push:
+push: build
 	@docker push nlopez/media-toolbox
 
 run:
