@@ -14,10 +14,13 @@ RUN rm -rf /var/lib/apt/lists/*
 FROM ubuntu
 ARG UID=1000
 ARG GID=1000
+
 COPY --from=build / /
-ENV SHELL /bin/bash
-ENTRYPOINT bash --login
 RUN groupadd -g "${GID}" user \
   && useradd --create-home --no-log-init -u "${UID}" -g "${GID}" user
+COPY --chown=${UID}:${GID} rootfs/ /
+
+ENV SHELL /bin/bash
 USER user
 WORKDIR /home/user
+ENTRYPOINT bash --login
