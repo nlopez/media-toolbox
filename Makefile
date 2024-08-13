@@ -1,5 +1,5 @@
 build:
-	@docker build -t nlopez/media-toolbox .
+	@docker build --build-arg UID=1001 --build-arg GID=1001 -t nlopez/media-toolbox .
 
 push: build
 	@docker push nlopez/media-toolbox
