@@ -20,3 +20,4 @@ ENTRYPOINT bash --login
 RUN groupadd -g "${GID}" user \
   && useradd --create-home --no-log-init -u "${UID}" -g "${GID}" user
 USER user
+WORKDIR /home/user
