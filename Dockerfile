@@ -23,4 +23,4 @@ COPY --chown=${UID}:${GID} rootfs/ /
 ENV SHELL /bin/bash
 USER user
 WORKDIR /home/user
-ENTRYPOINT bash --login
+ENTRYPOINT bash --login -c "screen -D -RR"
