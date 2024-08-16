@@ -1,5 +1,5 @@
 FROM ubuntu AS build
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 # Add yt-dlp repository
 RUN apt-get update
 RUN apt-get install -y software-properties-common

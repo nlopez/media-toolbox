@@ -25,3 +25,6 @@ jobs:
         with:
           push: true
           tags: nlopez/media-toolbox:latest
+          build-args: |
+            UID=1001
+            GID=1001
