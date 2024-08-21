@@ -15,6 +15,7 @@ RUN apt-get install -y \
   ffmpeg \
   git \
   htop \
+  jq \
   less \
   locales \
   ncdu \
