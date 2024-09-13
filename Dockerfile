@@ -5,7 +5,7 @@ RUN apt-get update
 RUN apt-get install -y software-properties-common
 RUN add-apt-repository ppa:tomtomtom/yt-dlp
 # Install packages
-RUN apt-get update
+RUN apt-get update --fix-missing
 ENV LANG=en_US.UTF-8
 RUN apt-get install -y \
   aria2 \
@@ -19,6 +19,8 @@ RUN apt-get install -y \
   less \
   locales \
   ncdu \
+  pipx \
+  python3-venv \
   rclone \
   ripgrep \
   rsync \
@@ -43,6 +45,7 @@ RUN groupadd -g "${GID}" user \
   && useradd --create-home --no-log-init -u "${UID}" -g "${GID}" user
 COPY --chown=${UID}:${GID} rootfs/ /
 
+RUN pipx install tubeup --include-deps
 ENV TERM=xterm-256color
 ENV SHELL=/bin/bash
 USER user
