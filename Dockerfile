@@ -45,9 +45,9 @@ RUN groupadd -g "${GID}" user \
   && useradd --create-home --no-log-init -u "${UID}" -g "${GID}" user
 COPY --chown=${UID}:${GID} rootfs/ /
 
-RUN pipx install tubeup --include-deps
+RUN pipx install tubeup streamlink --include-deps
 ENV TERM=xterm-256color
 ENV SHELL=/bin/bash
 USER user
 WORKDIR /home/user
-ENTRYPOINT bash --login -c "screen -D -RR"
+ENTRYPOINT ["bash", "--login", "-c", "screen -D -RR" ]
