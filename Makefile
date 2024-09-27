@@ -4,5 +4,5 @@ build:
 push: build
 	@docker push nlopez/media-toolbox
 
-run:
+run: build
 	@docker run -it nlopez/media-toolbox

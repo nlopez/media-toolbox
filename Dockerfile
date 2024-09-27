@@ -1,13 +1,14 @@
-FROM ubuntu AS build
+FROM ubuntu:latest AS build
 ENV DEBIAN_FRONTEND=noninteractive
+RUN yes | unminimize
 # Add yt-dlp repository
-RUN apt-get update
-RUN apt-get install -y software-properties-common
-RUN add-apt-repository ppa:tomtomtom/yt-dlp
+RUN apt-get update && \
+  apt-get install -y --no-install-recommends software-properties-common && \
+  add-apt-repository ppa:tomtomtom/yt-dlp -y && \
+  apt-get update --fix-missing
 # Install packages
-RUN apt-get update --fix-missing
 ENV LANG=en_US.UTF-8
-RUN apt-get install -y \
+RUN apt-get install -y --no-install-recommends \
   aria2 \
   bash \
   bwm-ng \
@@ -15,9 +16,11 @@ RUN apt-get install -y \
   ffmpeg \
   git \
   htop \
+  iotop \
   jq \
   less \
   locales \
+  mediainfo \
   ncdu \
   pipx \
   python3-venv \
@@ -28,15 +31,11 @@ RUN apt-get install -y \
   vim \
   wget \
   yt-dlp \
-  && sed -i -e "s/# $LANG.*/$LANG UTF-8/" /etc/locale.gen && \
-    dpkg-reconfigure --frontend=noninteractive locales && \
-    update-locale LANG=$LANG
+  && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 && \
+  apt-get clean && \
+  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# Clean up
-RUN apt-get clean
-RUN rm -rf /var/lib/apt/lists/*
-
-FROM ubuntu
+FROM ubuntu:latest
 ARG UID=1000
 ARG GID=1000
 
