@@ -1,6 +1,5 @@
 FROM ubuntu:latest AS build
 ENV DEBIAN_FRONTEND=noninteractive
-RUN yes | unminimize
 # Add yt-dlp repository
 RUN apt-get update && \
   apt-get install -y --no-install-recommends software-properties-common && \
@@ -31,9 +30,9 @@ RUN apt-get install -y --no-install-recommends \
   vim \
   wget \
   yt-dlp \
-  && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 && \
-  apt-get clean && \
-  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+  && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
+  && apt-get clean \
+  &&  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 FROM ubuntu:latest
 ARG UID=1000
