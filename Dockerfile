@@ -20,6 +20,7 @@ RUN apt-get install -y --no-install-recommends \
   less \
   locales \
   mediainfo \
+  mkvtoolnix \
   ncdu \
   pipx \
   python3-venv \
