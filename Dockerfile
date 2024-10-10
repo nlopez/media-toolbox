@@ -30,7 +30,6 @@ RUN apt-get install -y --no-install-recommends \
   screen \
   vim \
   wget \
-  yt-dlp \
   && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 \
   && apt-get clean \
   &&  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
@@ -43,10 +42,10 @@ COPY --from=build / /
 RUN groupadd -g "${GID}" user \
   && useradd --create-home --no-log-init -u "${UID}" -g "${GID}" user
 COPY --chown=${UID}:${GID} rootfs/ /
-
-RUN pipx install tubeup streamlink --include-deps
-ENV TERM=xterm-256color
-ENV SHELL=/bin/bash
 USER user
 WORKDIR /home/user
+RUN pipx install tubeup streamlink yt-dlp
+RUN pipx inject yt-dlp https://github.com/coletdjnz/yt-dlp-youtube-oauth2/archive/refs/heads/master.zip
+ENV TERM=xterm-256color
+ENV SHELL=/bin/bash
 ENTRYPOINT ["bash", "--login", "-c", "screen -D -RR" ]
