@@ -46,6 +46,7 @@ USER user
 WORKDIR /home/user
 RUN pipx install tubeup streamlink yt-dlp
 RUN pipx inject yt-dlp https://github.com/coletdjnz/yt-dlp-youtube-oauth2/archive/refs/heads/master.zip
+RUN pipx inject yt-dlp bgutil-ytdlp-pot-provider
 ENV TERM=xterm-256color
 ENV SHELL=/bin/bash
 ENTRYPOINT ["bash", "--login", "-c", "screen -D -RR" ]
