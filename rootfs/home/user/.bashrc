@@ -1,6 +1,6 @@
 #!/bin/bash
 case $- in
-  *i*) if [[ "$STY" == "" ]]; then screen -dR; fi ;;
+  *i*) if [[ "$STY" == "" ]]; then exec screen -dR; fi ;;
 esac
 
 # pipx
