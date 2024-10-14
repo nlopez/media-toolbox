@@ -13,4 +13,4 @@ push: build
 	@docker push $(IMAGE):$(TAG)
 
 run: build
-	@docker run -it $(IMAGE)
+	@docker run -it $(IMAGE):$(TAG)

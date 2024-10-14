@@ -58,3 +58,4 @@ ARG GID=1000
 COPY --link --from=stage3 / /
 COPY --chown=${UID}:${GID} rootfs/ /
 ENTRYPOINT ["/init"]
+CMD ["/bin/bash"]
