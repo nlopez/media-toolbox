@@ -1,16 +1,17 @@
 # escape=`
-FROM ubuntu:latest AS build
+FROM ubuntu:latest AS stage1
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g "${GID}" user `
+  && useradd --create-home --no-log-init -u "${UID}" -g "${GID}" user
+
+FROM ubuntu:latest AS stage2
+COPY --link --from=stage1 / /
 ENV DEBIAN_FRONTEND=noninteractive
-# Add yt-dlp repository
-RUN apt-get update && `
-  apt-get install -y --no-install-recommends software-properties-common && `
-  add-apt-repository ppa:tomtomtom/yt-dlp -y && `
-  apt-get update --fix-missing
-# Install packages
-ENV LANG=en_US.UTF-8
-RUN apt-get install -y --no-install-recommends `
+RUN apt-get update && apt-get install -y --no-install-recommends `
   aria2 `
   bash `
+  bash-completion `
   bwm-ng `
   curl `
   ffmpeg `
@@ -29,31 +30,26 @@ RUN apt-get install -y --no-install-recommends `
   ripgrep `
   rsync `
   screen `
-  vim `
+  vim-tiny `
   wget `
   && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 `
   && apt-get clean `
-  &&  rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+  && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-FROM ubuntu:latest
-ARG UID=1000
-ARG GID=1000
-
-COPY --from=build / /
-RUN groupadd -g "${GID}" user `
-  && useradd --create-home --no-log-init -u "${UID}" -g "${GID}" user
-COPY --chown=${UID}:${GID} rootfs/ /
+FROM ubuntu:latest AS stage3
+COPY --link --from=stage2 / /
 USER user
 WORKDIR /home/user
 RUN pipx install tubeup streamlink yt-dlp
 RUN pipx inject yt-dlp https://github.com/coletdjnz/yt-dlp-youtube-oauth2/archive/refs/heads/master.zip
 RUN pipx inject yt-dlp bgutil-ytdlp-pot-provider
-RUN pipx ensurepath
-RUN <<EOF cat >> /home/user/.bashrc
-case \$- in
-  *i*) if [[ "\$STY" == "" ]]; then screen -dR; fi ;;
-esac
-EOF
+
+FROM ubuntu:latest AS stage4
+COPY --link --from=stage3 / /
+ARG UID=1000
+ARG GID=1000
+COPY --link --chown=${UID}:${GID} rootfs/ /
+USER user
 ENV TERM=xterm-256color
 ENV SHELL=/bin/bash
 ENTRYPOINT ["/bin/bash"]
