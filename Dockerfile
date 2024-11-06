@@ -41,7 +41,7 @@ FROM ubuntu:latest AS stage3
 COPY --link --from=stage2 / /
 USER user
 WORKDIR /home/user
-RUN pipx install tubeup streamlink yt-dlp
+RUN pipx install tubeup streamlink yt-dlp[default]==2024.11.04
 RUN pipx inject yt-dlp https://github.com/coletdjnz/yt-dlp-youtube-oauth2/archive/refs/heads/master.zip
 RUN pipx inject yt-dlp bgutil-ytdlp-pot-provider
 
