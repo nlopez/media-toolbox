@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   ripgrep `
   rsync `
   screen `
+  unzip `
   vim-tiny `
   wget `
   && localedef -i en_US -c -f UTF-8 -A /usr/share/locale/locale.alias en_US.UTF-8 `
@@ -46,6 +47,13 @@ RUN pipx install tubeup streamlink yt-dlp[default]==2024.11.18
 
 FROM ubuntu:latest AS stage4
 COPY --link --from=stage3 / /
+RUN wget -O /tmp/ytarchive.zip https://github.com/Kethsar/ytarchive/releases/download/v0.5.0/ytarchive_linux_amd64.zip && `
+  unzip /tmp/ytarchive.zip -d /usr/local/bin && `
+  rm /tmp/ytarchive.zip && `
+  chmod +x /usr/local/bin/ytarchive
+
+FROM ubuntu:latest AS stage5
+COPY --link --from=stage4 / /
 ARG UID=1000
 ARG GID=1000
 COPY --link --chown=${UID}:${GID} rootfs/ /
