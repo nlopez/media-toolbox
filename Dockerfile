@@ -55,6 +55,12 @@ RUN wget -O /tmp/ytarchive.zip https://github.com/Kethsar/ytarchive/releases/dow
 
 FROM ubuntu:latest AS stage5
 COPY --link --from=stage4 / /
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && `
+  apt-get install -y nodejs && `
+  npm install --global twspace-crawler
+
+FROM ubuntu:latest AS stage6
+COPY --link --from=stage5 / /
 ARG UID=1000
 ARG GID=1000
 COPY --link --chown=${UID}:${GID} rootfs/ /
