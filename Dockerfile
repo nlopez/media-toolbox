@@ -43,8 +43,8 @@ FROM ubuntu:latest AS stage3
 COPY --link --from=stage2 / /
 USER user
 WORKDIR /home/user
-RUN pipx install tubeup streamlink yt-dlp[default]==2025.01.12
-# RUN pipx inject yt-dlp bgutil-ytdlp-pot-provider
+RUN pipx install tubeup streamlink yt-dlp[default]==2025.01.15
+RUN pipx inject yt-dlp yt-dlp-get-pot bgutil-ytdlp-pot-provider
 
 FROM ubuntu:latest AS stage4
 COPY --link --from=stage3 / /
