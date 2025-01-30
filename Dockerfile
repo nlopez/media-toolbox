@@ -2,6 +2,8 @@
 FROM ubuntu:latest AS stage1
 ARG UID=1000
 ARG GID=1000
+ARG YT_DLP_VERSION=2025.01.26
+ARG YTARCHIVE_VERSION=0.5.0 # Without the v
 RUN groupadd -g "${GID}" user `
   && useradd --create-home --no-log-init -u "${UID}" -g "${GID}" user
 
@@ -43,12 +45,12 @@ FROM ubuntu:latest AS stage3
 COPY --link --from=stage2 / /
 USER user
 WORKDIR /home/user
-RUN pipx install tubeup streamlink yt-dlp[default]==2025.01.15
+RUN pipx install tubeup streamlink yt-dlp[default]==$YT_DLP_VERSION
 RUN pipx inject yt-dlp yt-dlp-get-pot bgutil-ytdlp-pot-provider
 
 FROM ubuntu:latest AS stage4
 COPY --link --from=stage3 / /
-RUN wget -O /tmp/ytarchive.zip https://github.com/Kethsar/ytarchive/releases/download/v0.5.0/ytarchive_linux_amd64.zip && `
+RUN wget -O /tmp/ytarchive.zip https://github.com/Kethsar/ytarchive/releases/download/v${YTARCHIVE_VERSION}/ytarchive_linux_amd64.zip && `
   unzip /tmp/ytarchive.zip -d /usr/local/bin && `
   rm /tmp/ytarchive.zip && `
   chmod +x /usr/local/bin/ytarchive
