@@ -26,12 +26,14 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   mkvtoolnix `
   ncdu `
   pipx `
+  pngquant `
   python3-pip `
   python3-venv `
   rclone `
   ripgrep `
   rsync `
   screen `
+  trimage `
   unzip `
   vim-tiny `
   wget `
