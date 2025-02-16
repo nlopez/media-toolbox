@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   htop `
   iotop `
   jq `
+  kid3-cli `
   less `
   locales `
   mediainfo `
