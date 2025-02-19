@@ -35,6 +35,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   ripgrep `
   rsync `
   screen `
+  tmux `
   trimage `
   unzip `
   vim-tiny `
@@ -67,19 +68,18 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && `
 
 FROM ubuntu:latest AS stage6
 COPY --link --from=stage5 / /
-USER user
-WORKDIR /home/user
-RUN git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && `
-  ~/.fzf/install --no-completion
-RUN git clone https://github.com/rockandska/fzf-obc ~/.local/opt/fzf-obc && `
-  sh -c 'echo "source ~/.local/opt/fzf-obc/bin/fzf-obc.bash" >> ~/.bashrc'
-
-FROM ubuntu:latest AS stage7
-COPY --link --from=stage6 / /
 ARG UID=1000
 ARG GID=1000
 COPY --link --chown=${UID}:${GID} rootfs/ /
 USER user
+ENV HOME=/home/user
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
+WORKDIR $HOME
+RUN git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && `
+  ~/.fzf/install --no-completion --key-bindings --update-rc
+RUN git clone https://github.com/rockandska/fzf-obc ~/.local/opt/fzf-obc && `
+  /bin/sh -c 'echo "source ~/.local/opt/fzf-obc/bin/fzf-obc.bash" >> ~/.bashrc'
 ENV SHELL=/bin/bash
 ENTRYPOINT ["/bin/bash"]
 CMD ["-c", "trap : TERM INT; sleep infinity & wait"]
