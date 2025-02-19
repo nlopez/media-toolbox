@@ -36,7 +36,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   rsync `
   screen `
   tmux `
-  trimage `
   unzip `
   vim-tiny `
   wget `
