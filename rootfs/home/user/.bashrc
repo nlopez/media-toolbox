@@ -78,3 +78,6 @@ fi
 # pipx
 export PATH="${PATH}:${HOME}/.local/bin"
 eval "$(register-python-argcomplete pipx)"
+
+# Set up fzf key bindings and fuzzy completion
+eval "$(fzf --bash)"
