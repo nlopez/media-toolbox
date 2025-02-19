@@ -17,7 +17,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   bwm-ng `
   curl `
   ffmpeg `
-  fzf `
   git `
   htop `
   iotop `
@@ -68,11 +67,15 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && `
 
 FROM ubuntu:latest AS stage6
 COPY --link --from=stage5 / /
+RUN git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && yes | ~/.fzf/install
+
+
+FROM ubuntu:latest AS stage7
+COPY --link --from=stage6 / /
 ARG UID=1000
 ARG GID=1000
 COPY --link --chown=${UID}:${GID} rootfs/ /
 USER user
-ENV TERM=xterm-256color
 ENV SHELL=/bin/bash
 ENTRYPOINT ["/bin/bash"]
 CMD ["-c", "trap : TERM INT; sleep infinity & wait"]
