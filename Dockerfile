@@ -16,6 +16,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   bc `
   bwm-ng `
   curl `
+  fd-find `
   ffmpeg `
   git `
   htop `
