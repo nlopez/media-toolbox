@@ -69,7 +69,10 @@ FROM ubuntu:latest AS stage6
 COPY --link --from=stage5 / /
 USER user
 WORKDIR /home/user
-RUN git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && /bin/sh -c "yes | ~/.fzf/install"
+RUN git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && \
+  ~/.fzf/install --no-completion && \
+  git clone https://github.com/rockandska/fzf-obc ~/.local/opt/fzf-obc &&
+  echo "source ~/.local/opt/fzf-obc/bin/fzf-obc.bash" >> ~/.bashrc
 
 FROM ubuntu:latest AS stage7
 COPY --link --from=stage6 / /

@@ -75,6 +75,9 @@ if ! shopt -oq posix; then
   fi
 fi
 
+# Case insensitive completion
+bind -s 'set completion-ignore-case on'
+
 # pipx
 export PATH="${PATH}:${HOME}/.local/bin"
 eval "$(register-python-argcomplete pipx)"
