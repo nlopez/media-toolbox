@@ -27,6 +27,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   mediainfo `
   mkvtoolnix `
   ncdu `
+  optipng `
   pipx `
   pngquant `
   python3-pip `
