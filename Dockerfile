@@ -67,8 +67,9 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && `
 
 FROM ubuntu:latest AS stage6
 COPY --link --from=stage5 / /
+USER user
+WORKDIR /home/user
 RUN git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && yes | ~/.fzf/install
-
 
 FROM ubuntu:latest AS stage7
 COPY --link --from=stage6 / /
