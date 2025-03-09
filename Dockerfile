@@ -56,8 +56,8 @@ RUN wget -O /tmp/ytarchive.zip https://github.com/Kethsar/ytarchive/releases/dow
 FROM ubuntu:latest AS stage4
 COPY --link --from=stage3 / /
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && `
-  apt-get install -y nodejs yarn && `
-  npm install --global twspace-crawler
+  apt-get install -y nodejs && `
+  npm install --global yarn twspace-crawler
 
 FROM ubuntu:latest AS stage5
 COPY --link --from=stage4 / /
