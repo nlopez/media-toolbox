@@ -53,7 +53,7 @@ COPY --link --from=stage2 / /
 USER user
 WORKDIR /home/user
 RUN pipx install tubeup streamlink yt-dlp[default]==$YT_DLP_VERSION
-RUN pipx inject yt-dlp yt-dlp-get-pot==$YT_DLP_GET_POT_VERSION bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION
+RUN pipx inject yt-dlp bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION
 
 FROM ubuntu:latest AS stage4
 ARG YTARCHIVE_VERSION
