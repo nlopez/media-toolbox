@@ -2,13 +2,17 @@ TAG := $(shell git log -1 --pretty=%h)
 UID := 1001
 GID := 1001
 IMAGE := nlopez/media-toolbox
-YT_DLP_VERSION := 2025.02.19
 YTARCHIVE_VERSION := 0.5.0
+YT_DLP_GET_POT_VERSION := 0.3.0
+YT_DLP_VERSION := 2025.02.19
+BGUTIL_YTDLP_POT_PROVIDER_VERSION := 0.7.4
 
 build:
 	@docker build \
-		--build-arg YT_DLP_VERSION=$(YT_DLP_VERSION) \
 		--build-arg YTARCHIVE_VERSION=$(YTARCHIVE_VERSION) \
+		--build-arg YT_DLP_VERSION=$(YT_DLP_VERSION) \
+		--build-arg BGUTIL_YTDLP_POT_PROVIDER_VERSION=$(BGUTIL_YTDLP_POT_PROVIDER_VERSION) \
+		--build-arg YT_DLP_GET_POT_VERSION=$(YT_DLP_GET_POT_VERSION) \
 		--build-arg UID=$(UID) \
 		--build-arg GID=$(GID) \
 		-t $(IMAGE):$(TAG) .
