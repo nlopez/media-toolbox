@@ -54,7 +54,10 @@ USER user
 WORKDIR /home/user
 RUN pipx install tubeup streamlink yt-dlp[default]==$YT_DLP_VERSION
 RUN pipx inject yt-dlp bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION
-RUN git clone --single-branch --branch $BGUTIL_YTDLP_POT_PROVIDER_VERSION https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git
+RUN git clone --single-branch --branch $BGUTIL_YTDLP_POT_PROVIDER_VERSION https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git && `
+  cd bgutil-ytdlp-pot-provider/server/ `
+  yarn install --frozen-lockfile `
+  npx tsc
 
 FROM ubuntu:latest AS stage4
 ARG YTARCHIVE_VERSION
