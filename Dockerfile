@@ -46,32 +46,31 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
 FROM ubuntu:latest AS stage3
-ARG YT_DLP_VERSION
-ARG YT_DLP_GET_POT_VERSION
-ARG BGUTIL_YTDLP_POT_PROVIDER_VERSION
 COPY --link --from=stage2 / /
-USER user
-WORKDIR /home/user
-RUN pipx install tubeup streamlink yt-dlp[default]==$YT_DLP_VERSION
-RUN pipx inject yt-dlp bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION
-RUN git clone --single-branch --branch $BGUTIL_YTDLP_POT_PROVIDER_VERSION https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git && `
-  cd bgutil-ytdlp-pot-provider/server/ `
-  yarn install --frozen-lockfile `
-  npx tsc
-
-FROM ubuntu:latest AS stage4
 ARG YTARCHIVE_VERSION
-COPY --link --from=stage3 / /
 RUN wget -O /tmp/ytarchive.zip https://github.com/Kethsar/ytarchive/releases/download/v${YTARCHIVE_VERSION}/ytarchive_linux_amd64.zip && `
   unzip /tmp/ytarchive.zip -d /usr/local/bin && `
   rm /tmp/ytarchive.zip && `
   chmod +x /usr/local/bin/ytarchive
 
+FROM ubuntu:latest AS stage4
+COPY --link --from=stage3 / /
+RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && `
+  apt-get install -y nodejs yarn && `
+  npm install --global twspace-crawler
+
 FROM ubuntu:latest AS stage5
 COPY --link --from=stage4 / /
-RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && `
-  apt-get install -y nodejs && `
-  npm install --global twspace-crawler
+ARG YT_DLP_VERSION
+ARG BGUTIL_YTDLP_POT_PROVIDER_VERSION
+USER user
+WORKDIR /home/user
+RUN pipx install tubeup streamlink yt-dlp[default]==$YT_DLP_VERSION
+RUN pipx inject yt-dlp bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION
+RUN git clone --single-branch --branch $BGUTIL_YTDLP_POT_PROVIDER_VERSION https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git && `
+  cd bgutil-ytdlp-pot-provider/server/ && `
+  yarn install --frozen-lockfile && `
+  npx tsc
 
 FROM ubuntu:latest AS stage6
 COPY --link --from=stage5 / /
