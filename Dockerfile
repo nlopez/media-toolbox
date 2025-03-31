@@ -1,5 +1,5 @@
 # escape=`
-FROM ubuntu:latest AS stage1
+FROM --platform=linux/amd64 ubuntu:latest AS stage1
 ARG UID=1000
 ARG GID=1000
 RUN groupadd -g "${GID}" user `
