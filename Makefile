@@ -9,6 +9,7 @@ BGUTIL_YTDLP_POT_PROVIDER_VERSION := 0.7.4
 
 build:
 	@docker build \
+		--platform=linux/amd64 \
 		--build-arg YTARCHIVE_VERSION=$(YTARCHIVE_VERSION) \
 		--build-arg YT_DLP_VERSION=$(YT_DLP_VERSION) \
 		--build-arg BGUTIL_YTDLP_POT_PROVIDER_VERSION=$(BGUTIL_YTDLP_POT_PROVIDER_VERSION) \
@@ -18,6 +19,7 @@ build:
 build-no-cache:
 	@docker build \
 		--no-cache \
+		--platform=linux/amd64 \
 		--build-arg YTARCHIVE_VERSION=$(YTARCHIVE_VERSION) \
 		--build-arg YT_DLP_VERSION=$(YT_DLP_VERSION) \
 		--build-arg BGUTIL_YTDLP_POT_PROVIDER_VERSION=$(BGUTIL_YTDLP_POT_PROVIDER_VERSION) \
