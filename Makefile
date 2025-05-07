@@ -28,4 +28,4 @@ push: build
 	@docker push $(IMAGE):$(TAG)
 
 run: build
-	docker run -e PUID=1001 -e PGID=1001 -it $(IMAGE):$(TAG) /bin/bash
+	docker run -e PUID=1001 -e PGID=1001 -e TERM=${TERM} -it $(IMAGE):$(TAG) /bin/bash

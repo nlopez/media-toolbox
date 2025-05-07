@@ -65,7 +65,9 @@ RUN git clone --single-branch --branch $BGUTIL_YTDLP_POT_PROVIDER_VERSION https:
   npx tsc
 COPY --link rootfs/ /
 WORKDIR $HOME
+RUN chsh -s /bin/bash abc
 RUN git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && `
   ~/.fzf/install --no-completion --key-bindings --update-rc
 RUN git clone https://github.com/rockandska/fzf-obc ~/.local/opt/fzf-obc && `
   /bin/sh -c 'echo "source ~/.local/opt/fzf-obc/bin/fzf-obc.bash" >> ~/.bashrc'
+CMD ["/usr/bin/execlineb", "-P", "-c", "emptyenv export HOME /home/abc s6-setuidgid abc /bin/bash"]
