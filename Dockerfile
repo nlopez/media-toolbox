@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   curl `
   fd-find `
   ffmpeg `
+  file `
   git `
   htop `
   iotop `
