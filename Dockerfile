@@ -67,6 +67,7 @@ RUN git clone --single-branch --branch $BGUTIL_YTDLP_POT_PROVIDER_VERSION https:
 COPY --link rootfs/ /
 WORKDIR $HOME
 RUN chsh -s /bin/bash abc
+RUN chsh -s /bin/bash root
 RUN git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && `
   ~/.fzf/install --no-completion --key-bindings --update-rc
 RUN git clone https://github.com/rockandska/fzf-obc ~/.local/opt/fzf-obc && `
