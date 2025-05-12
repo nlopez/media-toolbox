@@ -1,6 +1,12 @@
-# syntax=docker/dockerfile:1
 # escape=`
-FROM lscr.io/linuxserver/baseimage-ubuntu:noble-3630948c-ls36 AS stage1
+FROM ubuntu:latest AS stage1
+ARG UID=1000
+ARG GID=1000
+RUN groupadd -g "${GID}" user `
+  && useradd --create-home --no-log-init -u "${UID}" -g "${GID}" user
+
+FROM ubuntu:latest AS stage2
+COPY --link --from=stage1 / /
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends `
   aria2 `
@@ -12,9 +18,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   curl `
   fd-find `
   ffmpeg `
-  file `
   git `
   htop `
+  file `
+  python-is-python3 `
   iotop `
   jq `
   kid3-cli `
@@ -26,14 +33,12 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   optipng `
   pipx `
   pngquant `
-  python-is-python3 `
   python3-pip `
   python3-venv `
   rclone `
   ripgrep `
   rsync `
   screen `
-  sudo `
   tmux `
   unzip `
   vim-tiny `
@@ -42,35 +47,47 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   && apt-get clean `
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-# ytarchive
+FROM ubuntu:latest AS stage3
+COPY --link --from=stage2 / /
 ARG YTARCHIVE_VERSION
 RUN wget -O /tmp/ytarchive.zip https://github.com/Kethsar/ytarchive/releases/download/v${YTARCHIVE_VERSION}/ytarchive_linux_amd64.zip && `
   unzip /tmp/ytarchive.zip -d /usr/local/bin && `
   rm /tmp/ytarchive.zip && `
   chmod +x /usr/local/bin/ytarchive
 
-# twspace-crawler
+FROM ubuntu:latest AS stage4
+COPY --link --from=stage3 / /
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && `
   apt-get install -y nodejs && `
   npm install --global yarn twspace-crawler
 
+FROM ubuntu:latest AS stage5
+COPY --link --from=stage4 / /
 ARG YT_DLP_VERSION
 ARG BGUTIL_YTDLP_POT_PROVIDER_VERSION
-ENV HOME=/home/abc
-ENV LANG=en_US.UTF-8
-ENV LC_ALL=en_US.UTF-8
+USER user
+WORKDIR /home/user
 RUN pipx install tubeup streamlink yt-dlp[default]==$YT_DLP_VERSION
 RUN pipx inject yt-dlp bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION
 RUN git clone --single-branch --branch $BGUTIL_YTDLP_POT_PROVIDER_VERSION https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git && `
   cd bgutil-ytdlp-pot-provider/server/ && `
   yarn install --frozen-lockfile && `
   npx tsc
-COPY --link rootfs/ /
+
+FROM ubuntu:latest AS stage6
+COPY --link --from=stage5 / /
+ARG UID=1000
+ARG GID=1000
+COPY --link --chown=${UID}:${GID} rootfs/ /
+USER user
+ENV HOME=/home/user
+ENV LANG=en_US.UTF-8
+ENV LC_ALL=en_US.UTF-8
 WORKDIR $HOME
-RUN chsh -s /bin/bash abc
-RUN chsh -s /bin/bash root
 RUN git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && `
   ~/.fzf/install --no-completion --key-bindings --update-rc
 RUN git clone https://github.com/rockandska/fzf-obc ~/.local/opt/fzf-obc && `
   /bin/sh -c 'echo "source ~/.local/opt/fzf-obc/bin/fzf-obc.bash" >> ~/.bashrc'
-ENTRYPOINT ["/init"]
+ENV SHELL=/bin/bash
+ENTRYPOINT ["/bin/bash"]
+CMD ["-c", "trap : TERM INT; sleep infinity & wait"]
