@@ -31,7 +31,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   mkvtoolnix `
   ncdu `
   optipng `
-  pipx `
   pngquant `
   python3-pip `
   python3-venv `
@@ -67,8 +66,11 @@ ARG YT_DLP_VERSION
 ARG BGUTIL_YTDLP_POT_PROVIDER_VERSION
 USER user
 WORKDIR /home/user
-RUN pipx install tubeup streamlink yt-dlp[default]==$YT_DLP_VERSION
-RUN pipx inject yt-dlp bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION
+RUN pip install `
+  tubeup `
+  streamlink `
+  yt-dlp[default]==$YT_DLP_VERSION `
+  bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION
 RUN git clone --single-branch --branch $BGUTIL_YTDLP_POT_PROVIDER_VERSION https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git && `
   cd bgutil-ytdlp-pot-provider/server/ && `
   yarn install --frozen-lockfile && `
