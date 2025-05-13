@@ -1,11 +1,11 @@
 # escape=`
-FROM ubuntu:latest AS stage1
+FROM ubuntu:rolling AS stage1
 ARG UID=1000
 ARG GID=1000
 RUN groupadd -g "${GID}" user `
   && useradd --create-home --no-log-init -u "${UID}" -g "${GID}" user
 
-FROM ubuntu:latest AS stage2
+FROM ubuntu:rolling AS stage2
 COPY --link --from=stage1 / /
 ENV DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends `
@@ -31,6 +31,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   mkvtoolnix `
   ncdu `
   optipng `
+  pipx `
   pngquant `
   python3-pip `
   python3-venv `
@@ -46,7 +47,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   && apt-get clean `
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
 
-FROM ubuntu:latest AS stage3
+FROM ubuntu:rolling AS stage3
 COPY --link --from=stage2 / /
 ARG YTARCHIVE_VERSION
 RUN wget -O /tmp/ytarchive.zip https://github.com/Kethsar/ytarchive/releases/download/v${YTARCHIVE_VERSION}/ytarchive_linux_amd64.zip && `
@@ -54,29 +55,26 @@ RUN wget -O /tmp/ytarchive.zip https://github.com/Kethsar/ytarchive/releases/dow
   rm /tmp/ytarchive.zip && `
   chmod +x /usr/local/bin/ytarchive
 
-FROM ubuntu:latest AS stage4
+FROM ubuntu:rolling AS stage4
 COPY --link --from=stage3 / /
 RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && `
   apt-get install -y nodejs && `
   npm install --global yarn twspace-crawler
 
-FROM ubuntu:latest AS stage5
+FROM ubuntu:rolling AS stage5
 COPY --link --from=stage4 / /
 ARG YT_DLP_VERSION
 ARG BGUTIL_YTDLP_POT_PROVIDER_VERSION
 USER user
 WORKDIR /home/user
-RUN pip install `
-  tubeup `
-  streamlink `
-  yt-dlp[default]==$YT_DLP_VERSION `
-  bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION
+RUN pipx install tubeup streamlink yt-dlp[default]==$YT_DLP_VERSION
+RUN pipx inject yt-dlp bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION
 RUN git clone --single-branch --branch $BGUTIL_YTDLP_POT_PROVIDER_VERSION https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git && `
   cd bgutil-ytdlp-pot-provider/server/ && `
   yarn install --frozen-lockfile && `
   npx tsc
 
-FROM ubuntu:latest AS stage6
+FROM ubuntu:rolling AS stage6
 COPY --link --from=stage5 / /
 ARG UID=1000
 ARG GID=1000
