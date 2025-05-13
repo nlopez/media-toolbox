@@ -65,10 +65,10 @@ FROM ubuntu:rolling AS stage5
 COPY --link --from=stage4 / /
 ARG YT_DLP_VERSION
 ARG BGUTIL_YTDLP_POT_PROVIDER_VERSION
+RUN pipx install --global tubeup streamlink yt-dlp[default]==$YT_DLP_VERSION
+RUN pipx inject --global yt-dlp bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION
 USER user
 WORKDIR /home/user
-RUN pipx install tubeup streamlink yt-dlp[default]==$YT_DLP_VERSION
-RUN pipx inject yt-dlp bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION
 RUN git clone --single-branch --branch $BGUTIL_YTDLP_POT_PROVIDER_VERSION https://github.com/Brainicism/bgutil-ytdlp-pot-provider.git && `
   cd bgutil-ytdlp-pot-provider/server/ && `
   yarn install --frozen-lockfile && `
