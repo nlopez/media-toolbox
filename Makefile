@@ -2,7 +2,7 @@ UID := 1001
 GID := 1001
 IMAGE := nlopez/media-toolbox
 YTARCHIVE_VERSION := 0.5.0
-YT_DLP_VERSION := 2025.08.27
+YT_DLP_VERSION := 2025.09.26
 BGUTIL_YTDLP_POT_PROVIDER_VERSION := 1.2.2
 BUILDPLATFORM := linux/amd64
 TAG := ${YT_DLP_VERSION}-$(shell git log -1 --pretty=%h)
