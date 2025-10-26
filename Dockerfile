@@ -2,12 +2,15 @@
 FROM ubuntu:rolling AS stage1
 ARG UID=1000
 ARG GID=1000
+ENV LANG=en_US.UTF-8
+ENV LANGUAGE=en_US:en
+ENV LC_ALL=en_US.UTF-8
 RUN groupadd -g "${GID}" user `
   && useradd --create-home --no-log-init -u "${UID}" -g "${GID}" user
 
 FROM ubuntu:rolling AS stage2
 COPY --link --from=stage1 / /
-ENV DEBIAN_FRONTEND=noninteractive
+ARG DEBIAN_FRONTEND=noninteractive
 RUN apt-get update && apt-get install -y --no-install-recommends `
   aria2 `
   atomicparsley `
@@ -43,9 +46,10 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   unzip `
   vim-tiny `
   wget `
-  && localectl set-locale LANG=en_US.UTF-8 `
   && apt-get clean `
   && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
+RUN sed -i '/en_US.UTF-8/s/^# //g' /etc/locale.gen && `
+  locale-gen
 
 FROM ubuntu:rolling AS stage3
 COPY --link --from=stage2 / /
