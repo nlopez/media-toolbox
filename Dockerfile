@@ -71,7 +71,7 @@ ARG YT_DLP_VERSION
 ARG BGUTIL_YTDLP_POT_PROVIDER_VERSION
 RUN pipx install --global tubeup streamlink yt-dlp[default,curl-cffi]==$YT_DLP_VERSION
 RUN pipx inject --global yt-dlp bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION
-RUN curl -fsSL https://deno.land/install.sh | sh
+RUN curl -fsSL https://deno.land/install.sh | bash -s -- -y
 
 FROM ubuntu:rolling AS stage6
 COPY --link --from=stage5 / /

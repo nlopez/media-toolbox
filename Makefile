@@ -38,4 +38,4 @@ push: build
 	@docker push $(IMAGE):$(TAG)
 
 run: build
-	@docker run -it $(IMAGE):$(TAG)
+	@docker run -it --entrypoint /bin/bash $(IMAGE):$(TAG)
