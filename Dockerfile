@@ -71,7 +71,6 @@ ARG YT_DLP_VERSION
 ARG BGUTIL_YTDLP_POT_PROVIDER_VERSION
 RUN pipx install --global tubeup streamlink yt-dlp[default,curl-cffi]==$YT_DLP_VERSION
 RUN pipx inject --global yt-dlp bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION
-RUN curl -fsSL https://deno.land/install.sh | bash -s -- -y
 
 FROM ubuntu:rolling AS stage6
 COPY --link --from=stage5 / /
@@ -87,6 +86,9 @@ RUN git clone --depth 1 https://github.com/junegunn/fzf.git ~/.fzf && `
   ~/.fzf/install --no-completion --key-bindings --update-rc
 RUN git clone https://github.com/rockandska/fzf-obc ~/.local/opt/fzf-obc && `
   /bin/sh -c 'echo "source ~/.local/opt/fzf-obc/bin/fzf-obc.bash" >> ~/.bashrc'
+ENV DENO_INSTALL=${HOME}/.deno
+ENV PATH=${DENO_INSTALL}/bin:${PATH}
+RUN curl -fsSL https://deno.land/install.sh | bash -s -- -y
 ENV SHELL=/bin/bash
 ENTRYPOINT ["/bin/bash"]
 CMD ["-c", "trap : TERM INT; sleep infinity & wait"]
