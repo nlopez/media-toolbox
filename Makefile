@@ -1,10 +1,13 @@
+# https://pypi.org/project/yt-dlp/#history
+YT_DLP_VERSION := 2025.11.12.5349.dev0
+# https://github.com/Brainicism/bgutil-ytdlp-pot-provider
+BGUTIL_YTDLP_POT_PROVIDER_VERSION := 1.2.2
+# https://github.com/Kethsar/ytarchive
+YTARCHIVE_VERSION := 0.5.0
+
 UID := 1001
 GID := 1001
 IMAGE := nlopez/media-toolbox
-YTARCHIVE_VERSION := 0.5.0
-# https://pypi.org/project/yt-dlp/#history
-YT_DLP_VERSION := 2025.11.5.232946.dev0
-BGUTIL_YTDLP_POT_PROVIDER_VERSION := 1.2.2
 BUILDPLATFORM := linux/amd64
 TAG := ${YT_DLP_VERSION}-$(shell git log -1 --pretty=%h)
 
