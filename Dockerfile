@@ -21,21 +21,22 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   curl `
   fd-find `
   ffmpeg `
+  file `
   git `
   htop `
-  file `
-  python-is-python3 `
   iotop `
   jq `
   kid3-cli `
   less `
   locales `
   mediainfo `
+  mktorrent `
   mkvtoolnix `
   ncdu `
   optipng `
   pipx `
   pngquant `
+  python-is-python3 `
   python3-pip `
   python3-venv `
   rclone `
