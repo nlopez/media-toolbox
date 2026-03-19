@@ -1,8 +1,8 @@
 # https://pypi.org/project/yt-dlp/#history
-YT_DLP_VERSION := 2026.3.13.83652.dev0
-# https://github.com/Brainicism/bgutil-ytdlp-pot-provider
+YT_DLP_VERSION := 2026.3.17.232108.dev0
+# https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases
 BGUTIL_YTDLP_POT_PROVIDER_VERSION := 1.3.1
-# https://github.com/Kethsar/ytarchive
+# https://github.com/Kethsar/ytarchive/releases
 YTARCHIVE_VERSION := 0.5.0
 
 UID := 1001
