@@ -20,6 +20,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
   bash-completion \
   bc \
   bwm-ng \
+  ca-certificates \
   curl \
   fd-find \
   ffmpeg \
@@ -37,6 +38,8 @@ RUN --mount=type=cache,target=/var/cache/apt \
   ncdu \
   optipng \
   pngquant \
+  python3 \
+  python3-pip \
   python-is-python3 \
   rclone \
   ripgrep \
@@ -60,13 +63,16 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
 
 # Stage 4: Python tools via uv
 FROM ubuntu:24.04 AS stage4
+COPY --link --from=stage3 / /
 ARG YT_DLP_VERSION
 ARG BGUTIL_YTDLP_POT_PROVIDER_VERSION
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_TOOL_BIN_DIR=/usr/local/bin
 RUN python3 -m pip install uv --break-system-packages
 RUN --mount=type=cache,target=/root/.cache/uv \
-  uv tool install --force --no-cache-dir --with bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION tubeup streamlink yt-dlp[default,curl-cffi]==$YT_DLP_VERSION
+  uv tool install --force --no-cache-dir --with bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION yt-dlp[default,curl-cffi]==$YT_DLP_VERSION \
+  && uv tool install --force --no-cache-dir tubeup \
+  && uv tool install --force --no-cache-dir streamlink
 
 # Stage 5: Final user setup
 FROM ubuntu:24.04 AS stage5
