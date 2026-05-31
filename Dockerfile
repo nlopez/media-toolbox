@@ -1,5 +1,3 @@
-# escape=`
-
 # Stage 1: Create non-root user
 FROM ubuntu:24.04 AS stage1
 ARG UID=1000
