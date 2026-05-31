@@ -58,22 +58,19 @@ RUN curl -fsSL https://deb.nodesource.com/setup_22.x | bash - \
   && apt-get install -y nodejs \
   && npm install --global yarn twspace-crawler
 
-# Stage 4: uv binary from official distroless image
-FROM ghcr.io/astral-sh/uv:0.11.17 AS uv-dist
-
-# Stage 5: Python tools
-FROM ubuntu:24.04 AS stage5
-COPY --link --from=uv-dist /uv /uvx /bin/
+# Stage 4: Python tools via uv
+FROM ubuntu:24.04 AS stage4
 ARG YT_DLP_VERSION
 ARG BGUTIL_YTDLP_POT_PROVIDER_VERSION
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_TOOL_BIN_DIR=/usr/local/bin
+RUN python3 -m pip install uv --break-system-packages
 RUN --mount=type=cache,target=/root/.cache/uv \
   uv tool install --force --no-cache-dir --with bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION tubeup streamlink yt-dlp[default,curl-cffi]==$YT_DLP_VERSION
 
-# Stage 6: Final user setup
-FROM ubuntu:24.04 AS stage6
-COPY --link --from=stage5 / /
+# Stage 5: Final user setup
+FROM ubuntu:24.04 AS stage5
+COPY --link --from=stage4 / /
 ARG UID=1000
 ARG GID=1000
 COPY --link --chown=${UID}:${GID} rootfs/ /
