@@ -6,7 +6,7 @@ UID := 1001
 GID := 1001
 IMAGE := nlopez/media-toolbox
 GHCR_IMAGE := ghcr.io/nlopez/media-toolbox
-PLATFORMS ?= linux/amd64,linux/arm64
+PLATFORMS ?= linux/amd64
 TAG := ${YT_DLP_VERSION}-$(shell git log -1 --pretty=%h)
 
 tag:
