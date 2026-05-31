@@ -34,11 +34,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends `
   mkvtoolnix `
   ncdu `
   optipng `
-  pipx `
   pngquant `
   python-is-python3 `
-  python3-pip `
-  python3-venv `
   rclone `
   ripgrep `
   rsync `
@@ -66,12 +63,14 @@ RUN curl -fsSL https://deb.nodesource.com/setup_20.x | bash - && `
   apt-get install -y nodejs && `
   npm install --global yarn twspace-crawler
 
+FROM ghcr.io/astral-sh/uv:latest AS uv-dist
+
 FROM ubuntu:rolling AS stage5
-COPY --link --from=stage4 / /
+COPY --link --from=uv-dist /uv /uvx /bin/
 ARG YT_DLP_VERSION
 ARG BGUTIL_YTDLP_POT_PROVIDER_VERSION
-RUN pipx install --global tubeup streamlink yt-dlp[default,curl-cffi]==$YT_DLP_VERSION
-RUN pipx inject --global yt-dlp bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION
+ENV UV_TOOL_BIN_DIR=/usr/local/bin
+RUN uv tool install --force --no-cache-dir --with bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION tubeup streamlink yt-dlp[default,curl-cffi]==$YT_DLP_VERSION
 
 FROM ubuntu:rolling AS stage6
 COPY --link --from=stage5 / /
