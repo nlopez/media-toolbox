@@ -77,9 +77,12 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # Stage 5: Final user setup
 FROM ubuntu:24.04 AS stage5
 COPY --link --from=stage4 / /
+ARG YT_DLP_VERSION
+ARG BGUTIL_YTDLP_POT_PROVIDER_VERSION
 ARG UID=1000
 ARG GID=1000
 COPY --link --chown=${UID}:${GID} rootfs/ /
+LABEL org.opencontainers.image.description="Media Toolbox: A Docker-based development environment with audio/video/CLI tools for media processing."
 USER user
 ENV HOME=/home/user
 ENV LANG=en_US.UTF-8
