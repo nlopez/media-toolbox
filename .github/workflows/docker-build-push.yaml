@@ -45,16 +45,7 @@ jobs:
         if: github.event_name == 'schedule'
         run: |
           PYPI_VERSION=$(curl -s --connect-timeout 30 --max-time 60 https://pypi.org/pypi/yt-dlp/json | \
-            python3 -c "
-import sys, json
-data = json.load(sys.stdin)
-versions = data['releases']
-dev_versions = sorted(
-    [v for v in versions.keys() if '.dev0' in v],
-    reverse=True
-)
-print(dev_versions[0] if dev_versions else '')
-")
+            python3 -c "import sys,json; data=json.load(sys.stdin); versions=data['releases']; dev_versions=sorted([v for v in versions.keys() if '.dev0' in v],reverse=True); print(dev_versions[0] if dev_versions else '')")
           PINNED=$(grep '^YT_DLP_VERSION' Makefile | cut -d= -f2 | tr -d ' ')
           echo "latest=$PYPI_VERSION" >> $GITHUB_OUTPUT
           echo "pinned=$PINNED" >> $GITHUB_OUTPUT
