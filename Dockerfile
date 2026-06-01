@@ -81,7 +81,7 @@ LABEL org.opencontainers.image.description="Media Toolbox: A Docker-based develo
 USER user
 ENV HOME=/home/user
 ENV PATH="${HOME}/.local/bin:${PATH}"
-RUN curl -sSfL https://astral.sh/uv/install.sh | sh -s -- -y --no-modify-path
+RUN curl -sSfL https://astral.sh/uv/install.sh | sh -s -- --no-modify-path
 RUN --mount=type=cache,target=/home/user/.cache/uv \
   uv tool install --force --no-cache-dir --with bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION yt-dlp[default,curl-cffi]==${YT_DLP_VERSION} \
   && uv tool install --force --no-cache-dir tubeup \
