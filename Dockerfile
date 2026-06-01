@@ -68,11 +68,6 @@ ARG YT_DLP_VERSION
 ARG BGUTIL_YTDLP_POT_PROVIDER_VERSION
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_TOOL_BIN_DIR=/usr/local/bin
-RUN python3 -m pip install uv --break-system-packages
-RUN --mount=type=cache,target=/root/.cache/uv \
-  uv tool install --force --no-cache-dir --with bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION yt-dlp[default,curl-cffi]==$YT_DLP_VERSION \
-  && uv tool install --force --no-cache-dir tubeup \
-  && uv tool install --force --no-cache-dir streamlink
 
 # Stage 5: Final user setup
 FROM ubuntu:24.04 AS stage5
@@ -85,6 +80,12 @@ COPY --link --chown=${UID}:${GID} rootfs/ /
 LABEL org.opencontainers.image.description="Media Toolbox: A Docker-based development environment with audio/video/CLI tools for media processing."
 USER user
 ENV HOME=/home/user
+ENV PATH="${HOME}/.local/bin:${PATH}"
+RUN curl -sSf https://astral.sh/uv/install.sh | sh -s -- -y --no-modify-path
+RUN --mount=type=cache,target=/home/user/.cache/uv \
+  uv tool install --force --no-cache-dir --with bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION yt-dlp[default,curl-cffi]==${YT_DLP_VERSION} \
+  && uv tool install --force --no-cache-dir tubeup \
+  && uv tool install --force --no-cache-dir streamlink
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8
 WORKDIR $HOME

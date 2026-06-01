@@ -78,8 +78,10 @@ fi
 # Case insensitive completion
 bind -s 'set completion-ignore-case on'
 
-# pipx
-export PATH="${PATH}:${HOME}/.local/bin"
-eval "$(register-python-argcomplete pipx)"
+# local user tools and uv-installed CLI tools
+export PATH="${PATH}:${HOME}/.local/bin:/usr/local/bin"
+if command -v register-python-argcomplete >/dev/null 2>&1 && command -v pipx >/dev/null 2>&1; then
+    eval "$(register-python-argcomplete pipx)"
+fi
 
 export WORDCHARS=""
