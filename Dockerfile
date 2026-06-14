@@ -66,8 +66,19 @@ FROM ubuntu:24.04 AS stage4
 COPY --link --from=stage3 / /
 ARG YT_DLP_VERSION
 ARG BGUTIL_YTDLP_POT_PROVIDER_VERSION
+ARG TARGETARCH
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_TOOL_BIN_DIR=/usr/local/bin
+
+# Download sabr yt-dlp binary (replace PyPI install)
+ARG YT_DLP_RELEASE_URL=https://github.com/bashonly/yt-dlp/releases/download/sabr
+RUN case "${TARGETARCH}" in \
+      amd64)  YT_DLP_BIN=yt-dlp_linux ;; \
+      arm64)  YT_DLP_BIN=yt-dlp_linux_aarch64 ;; \
+      *)      YT_DLP_BIN=yt-dlp_linux ;; \
+    esac && \
+    curl -fsSL "${YT_DLP_RELEASE_URL}/${YT_DLP_BIN}" -o /usr/local/bin/yt-dlp && \
+    chmod +x /usr/local/bin/yt-dlp
 
 # Stage 5: Final user setup
 FROM ubuntu:24.04 AS stage5
@@ -83,8 +94,7 @@ ENV HOME=/home/user
 ENV PATH="${HOME}/.local/bin:${PATH}"
 RUN curl -sSfL https://astral.sh/uv/install.sh | sh -s -- --no-modify-path
 RUN --mount=type=cache,target=/home/user/.cache/uv \
-  uv tool install --force --no-cache-dir --with bgutil-ytdlp-pot-provider==$BGUTIL_YTDLP_POT_PROVIDER_VERSION yt-dlp[default,curl-cffi]==${YT_DLP_VERSION} \
-  && uv tool install --force --no-cache-dir tubeup \
+  uv tool install --force --no-cache-dir tubeup \
   && uv tool install --force --no-cache-dir streamlink
 ENV LANG=en_US.UTF-8
 ENV LC_ALL=en_US.UTF-8

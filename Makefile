@@ -1,5 +1,5 @@
-# https://pypi.org/project/yt-dlp/#history
-YT_DLP_VERSION := 2026.5.25.234532.dev0
+# https://github.com/bashonly/yt-dlp/releases/tag/sabr
+YT_DLP_VERSION := sabr
 # https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases
 BGUTIL_YTDLP_POT_PROVIDER_VERSION := 1.3.1
 UID := 1001
