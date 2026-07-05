@@ -70,8 +70,8 @@ ARG TARGETARCH
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_TOOL_BIN_DIR=/usr/local/bin
 
-# Download sabr yt-dlp binary (replace PyPI install)
-ARG YT_DLP_RELEASE_URL=https://github.com/bashonly/yt-dlp/releases/download/sabr
+# Download official yt-dlp binary
+ARG YT_DLP_RELEASE_URL=https://github.com/yt-dlp/yt-dlp/releases/download/2026.07.04
 RUN case "${TARGETARCH}" in \
       amd64)  YT_DLP_BIN=yt-dlp_linux ;; \
       arm64)  YT_DLP_BIN=yt-dlp_linux_aarch64 ;; \
