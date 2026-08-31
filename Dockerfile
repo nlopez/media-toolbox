@@ -20,6 +20,7 @@ RUN --mount=type=cache,target=/var/cache/apt \
   bash-completion \
   bc \
   bwm-ng \
+  dnsutils \
   ca-certificates \
   curl \
   fd-find \
