@@ -71,8 +71,8 @@ ARG TARGETARCH
 ENV UV_COMPILE_BYTECODE=1
 ENV UV_TOOL_BIN_DIR=/usr/local/bin
 
-# Download official yt-dlp binary
-ARG YT_DLP_RELEASE_URL=https://github.com/yt-dlp/yt-dlp/releases/download/2026.08.19
+# Download official yt-dlp binary (release tag pinned via the YT_DLP_VERSION build arg)
+ARG YT_DLP_RELEASE_URL=https://github.com/yt-dlp/yt-dlp/releases/download/${YT_DLP_VERSION}
 RUN case "${TARGETARCH}" in \
       amd64)  YT_DLP_BIN=yt-dlp_linux ;; \
       arm64)  YT_DLP_BIN=yt-dlp_linux_aarch64 ;; \
