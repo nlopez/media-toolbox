@@ -1,5 +1,5 @@
-# https://github.com/yt-dlp/yt-dlp/releases/tag/2026.10.21
-YT_DLP_VERSION := 2026.10.21
+# https://github.com/yt-dlp/yt-dlp/releases/tag/2026.10.26
+YT_DLP_VERSION := 2026.10.26
 # https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases
 BGUTIL_YTDLP_POT_PROVIDER_VERSION := 1.3.1
 UID := 1001
