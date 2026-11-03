@@ -96,6 +96,7 @@
             wget
 
             # shell / monitoring
+            atuin
             bc
             bwm_ng
             fd
@@ -154,6 +155,9 @@
             # fzf key bindings + fzf-obc (fzf over bash completions)
             source ${pkgs.fzf}/share/fzf/key-bindings.bash
             source ${pkgs.fzf-obc}/share/fzf-obc/bin/fzf-obc.bash
+
+            # atuin shell history; sourced after fzf so it owns Ctrl-R
+            eval "$(atuin init bash)"
             EOF
           '';
         in
