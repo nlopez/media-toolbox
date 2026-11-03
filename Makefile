@@ -23,13 +23,16 @@ build:
 	@docker tag $(IMAGE):$(TAG) $(IMAGE):$(SHA)
 	@docker tag $(IMAGE):$(TAG) $(GHCR_IMAGE):$(SHA)
 
+# Pushes with skopeo (needs `skopeo` and registry logins): `docker push` of a docker-loaded
+# Nix image sends the layers uncompressed, while skopeo gzips them.
 push: build
-	@docker push $(IMAGE):$(TAG)
-	@docker push $(GHCR_IMAGE):$(TAG)
-	@docker push $(IMAGE):$(TAG)-$(SHA)
-	@docker push $(GHCR_IMAGE):$(TAG)-$(SHA)
-	@docker push $(IMAGE):$(SHA)
-	@docker push $(GHCR_IMAGE):$(SHA)
+	@./result > image.tar
+	@skopeo copy --retry-times 3 docker-archive:image.tar docker://docker.io/$(IMAGE):$(TAG)
+	@skopeo copy --retry-times 3 docker://docker.io/$(IMAGE):$(TAG) docker://docker.io/$(IMAGE):$(TAG)-$(SHA)
+	@skopeo copy --retry-times 3 docker://docker.io/$(IMAGE):$(TAG) docker://docker.io/$(IMAGE):$(SHA)
+	@for t in $(TAG) $(TAG)-$(SHA) $(SHA); do \
+		skopeo copy --retry-times 3 docker://docker.io/$(IMAGE):$(TAG) docker://$(GHCR_IMAGE):$$t; \
+	done
 
 run: build
 	@docker run -it --entrypoint /bin/bash $(IMAGE):$(TAG)
