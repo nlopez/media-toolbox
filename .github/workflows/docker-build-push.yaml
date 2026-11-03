@@ -78,7 +78,15 @@ jobs:
         run: |
           set -euo pipefail
           nix build .#image --print-build-logs --out-link image-stream
-          ./image-stream | docker load
+          ./image-stream > image.tar
+      -
+        name: Smoke test image
+        run: |
+          set -euo pipefail
+          docker load -i image.tar
+          # The image entrypoint is bash, so the arguments below are `bash -c ...`.
+          docker run --rm "nlopez/media-toolbox:${{ steps.version.outputs.target }}" \
+            -c 'yt-dlp --version && ffmpeg -version | head -1 && tubeup --help >/dev/null && atuin --version && ls ~/.config/yt-dlp/plugins'
       -
         name: Login to Docker Hub
         if: github.ref == 'refs/heads/main'
@@ -101,14 +109,15 @@ jobs:
           set -euo pipefail
           TARGET="${{ steps.version.outputs.target }}"
           SHA="${{ github.sha }}"
-          # The flake tags the loaded image nlopez/media-toolbox:<yt-dlp version>.
-          for repo in nlopez/media-toolbox ghcr.io/nlopez/media-toolbox; do
-            docker tag "nlopez/media-toolbox:${TARGET}" "${repo}:${TARGET}"
-            docker tag "nlopez/media-toolbox:${TARGET}" "${repo}:${TARGET}-${SHA}"
-            docker tag "nlopez/media-toolbox:${TARGET}" "${repo}:${SHA}"
-            docker push "${repo}:${TARGET}"
-            docker push "${repo}:${TARGET}-${SHA}"
-            docker push "${repo}:${SHA}"
+          # `docker push` of a docker-loaded Nix image sends the layers uncompressed (~2.5 GiB).
+          # skopeo gzips them on upload. Push once from the archive, then copy to the other tags.
+          HUB=docker.io/nlopez/media-toolbox
+          GHCR=ghcr.io/nlopez/media-toolbox
+          skopeo copy --retry-times 3 "docker-archive:image.tar" "docker://${HUB}:${TARGET}"
+          skopeo copy --retry-times 3 "docker://${HUB}:${TARGET}" "docker://${HUB}:${TARGET}-${SHA}"
+          skopeo copy --retry-times 3 "docker://${HUB}:${TARGET}" "docker://${HUB}:${SHA}"
+          for tag in "${TARGET}" "${TARGET}-${SHA}" "${SHA}"; do
+            skopeo copy --retry-times 3 "docker://${HUB}:${TARGET}" "docker://${GHCR}:${tag}"
           done
       -
         name: Commit yt-dlp version bump
