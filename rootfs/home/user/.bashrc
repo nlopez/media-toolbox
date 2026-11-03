@@ -2,7 +2,7 @@
 
 # attach screen if interactive, else do nothing
 case $- in
-  *i*) if [[ "$STY" == "" ]]; then screen -dR; fi ;;
+  *i*) if [[ "$STY" == "" ]]; then mkdir -p -m 700 "$SCREENDIR"; screen -dR; fi ;;
   *) return;;
 esac
 
@@ -26,7 +26,7 @@ esac
 #force_color_prompt=yes
 
 if [ -n "$force_color_prompt" ]; then
-    if [ -x /usr/bin/tput ] && tput setaf 1 >&/dev/null; then
+    if command -v tput >/dev/null 2>&1 && tput setaf 1 >&/dev/null; then
         # We have color support; assume it's compliant with Ecma-48
         # (ISO/IEC-6429). (Lack of such support is extremely rare, and such
         # a case would tend to support setf rather than setaf.)
@@ -53,7 +53,7 @@ xterm*|rxvt*)
 esac
 
 # enable color support of ls and also add handy aliases
-if [ -x /usr/bin/dircolors ]; then
+if command -v dircolors >/dev/null 2>&1; then
     test -r ~/.dircolors && eval "$(dircolors -b ~/.dircolors)" || eval "$(dircolors -b)"
     alias ls='ls --color=auto'
     #alias dir='dir --color=auto'
@@ -68,8 +68,8 @@ fi
 # this, if it's already enabled in /etc/bash.bashrc and /etc/profile
 # sources /etc/bash.bashrc).
 if ! shopt -oq posix; then
-  if [ -f /usr/share/bash-completion/bash_completion ]; then
-    . /usr/share/bash-completion/bash_completion
+  if [ -f /share/bash-completion/bash_completion ]; then
+    . /share/bash-completion/bash_completion
   elif [ -f /etc/bash_completion ]; then
     . /etc/bash_completion
   fi

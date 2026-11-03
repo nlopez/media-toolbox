@@ -1,0 +1,10 @@
+{
+  "ytDlp": {
+    "version": "2026.10.26",
+    "hash": "sha256-0gX99Q45+1L4eH0YK0942DVTq5Wwscq3Qkj+N/EjHek="
+  },
+  "bgutil": {
+    "version": "2.0.2",
+    "hash": "sha256-omuYC/bY6EANjyFEXapNg4G/YYPSDwvjCTkfhrMeJ+8="
+  }
+}
