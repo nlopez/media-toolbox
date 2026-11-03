@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
     inputs:
       yt_dlp_version:
-        description: 'yt-dlp release tag to build (e.g. 2026.08.19). Blank = use the version pinned in the Makefile.'
+        description: 'yt-dlp release tag to build (e.g. 2026.08.19). Blank = use the version pinned in nix/versions.json.'
         required: false
         default: ''
 
@@ -16,18 +16,35 @@ permissions:
   packages: write   # push images to GHCR
 
 jobs:
-  docker:
+  image:
     runs-on: ubuntu-latest
     steps:
       -
         name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       -
+        name: Install Nix
+        uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
+      -
+        name: Cache Nix store
+        uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7
+        with:
+          # Exact hit when nothing changed; otherwise restore the newest cache and rebuild the delta
+          # (a yt-dlp bump changes nix/versions.json, so most runs take the prefix fallback).
+          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', 'nix/**') }}
+          restore-prefixes-first-match: nix-${{ runner.os }}-
+          # Keep the saved store bounded; the closure is ~2.5 GiB.
+          gc-max-store-size-linux: 4G
+          # Drop stale caches so daily keys don't eat the repo's 10 GiB cache quota.
+          purge: true
+          purge-prefixes: nix-${{ runner.os }}-
+          purge-last-accessed: 604800
+      -
         name: Resolve yt-dlp version
         id: version
         run: |
           set -euo pipefail
-          PINNED=$(grep '^YT_DLP_VERSION' Makefile | cut -d= -f2 | tr -d ' ')
+          PINNED=$(jq -r .ytDlp.version nix/versions.json)
           MANUAL="${{ github.event.inputs.yt_dlp_version }}"
 
           if [ -n "$MANUAL" ]; then
@@ -37,7 +54,7 @@ jobs:
               -H 'Accept: application/vnd.github+json' \
               -H 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
               https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest \
-              | python3 -c "import sys,json; print(json.load(sys.stdin).get('tag_name',''))")
+              | jq -r '.tag_name // empty')
             [ -n "$TARGET" ] || { echo "::error::could not resolve latest yt-dlp release"; exit 1; }
           else
             TARGET="$PINNED"
@@ -50,59 +67,49 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "Pinned: $PINNED | Target: $TARGET"
       -
-        name: Bump yt-dlp version in Makefile
+        name: Bump yt-dlp version in nix/versions.json
         if: steps.version.outputs.changed == 'true'
         run: |
           set -euo pipefail
-          TARGET="${{ steps.version.outputs.target }}"
-          sed -i "s|^YT_DLP_VERSION :=.*|YT_DLP_VERSION := $TARGET|" Makefile
-          sed -i "s|^# https://github.com/yt-dlp/yt-dlp/releases/tag/.*|# https://github.com/yt-dlp/yt-dlp/releases/tag/$TARGET|" Makefile
-          git diff -- Makefile
+          scripts/update-versions.sh yt-dlp "${{ steps.version.outputs.target }}"
+          git diff -- nix/versions.json
       -
-        name: Set up QEMU
-        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a
-      -
-        name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5
+        name: Build image
+        run: |
+          set -euo pipefail
+          nix build .#image --print-build-logs --out-link image-stream
+          ./image-stream | docker load
       -
         name: Login to Docker Hub
+        if: github.ref == 'refs/heads/main'
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
         name: Login to GHCR
+        if: github.ref == 'refs/heads/main'
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       -
-        name: Build and push
-        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf
-        with:
-          push: true
-          platforms: linux/amd64
-          tags: |
-            nlopez/media-toolbox:${{ steps.version.outputs.target }}
-            nlopez/media-toolbox:${{ steps.version.outputs.target }}-${{ github.sha }}
-            nlopez/media-toolbox:${{ github.sha }}
-            ghcr.io/nlopez/media-toolbox:${{ steps.version.outputs.target }}
-            ghcr.io/nlopez/media-toolbox:${{ steps.version.outputs.target }}-${{ github.sha }}
-            ghcr.io/nlopez/media-toolbox:${{ github.sha }}
-          labels: |
-            org.opencontainers.image.description=Media Toolbox: A Docker-based development environment with audio/video/CLI tools for media processing.
-          build-args: |
-            UID=1001
-            GID=1001
-            YT_DLP_VERSION=${{ steps.version.outputs.target }}
-            BGUTIL_YTDLP_POT_PROVIDER_VERSION=2.0.2
-          cache-from: |
-            type=gha
-            type=registry,ref=nlopez/media-toolbox:build-cache
-          cache-to: |
-            type=gha,mode=max
-            type=registry,ref=nlopez/media-toolbox:build-cache,mode=max
+        name: Tag and push
+        if: github.ref == 'refs/heads/main'
+        run: |
+          set -euo pipefail
+          TARGET="${{ steps.version.outputs.target }}"
+          SHA="${{ github.sha }}"
+          # The flake tags the loaded image nlopez/media-toolbox:<yt-dlp version>.
+          for repo in nlopez/media-toolbox ghcr.io/nlopez/media-toolbox; do
+            docker tag "nlopez/media-toolbox:${TARGET}" "${repo}:${TARGET}"
+            docker tag "nlopez/media-toolbox:${TARGET}" "${repo}:${TARGET}-${SHA}"
+            docker tag "nlopez/media-toolbox:${TARGET}" "${repo}:${SHA}"
+            docker push "${repo}:${TARGET}"
+            docker push "${repo}:${TARGET}-${SHA}"
+            docker push "${repo}:${SHA}"
+          done
       -
         name: Commit yt-dlp version bump
         if: steps.version.outputs.changed == 'true' && github.ref == 'refs/heads/main'
@@ -111,6 +118,6 @@ jobs:
           TARGET="${{ steps.version.outputs.target }}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add Makefile
+          git add nix/versions.json
           git commit -m "chore: bump yt-dlp to $TARGET [skip ci]"
           git push origin HEAD:main

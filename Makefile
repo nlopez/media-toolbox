@@ -1,54 +1,37 @@
-# https://github.com/yt-dlp/yt-dlp/releases/tag/2026.10.26
-YT_DLP_VERSION := 2026.10.26
-# https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases
-BGUTIL_YTDLP_POT_PROVIDER_VERSION := 2.0.2
-UID := 1001
-GID := 1001
+# Versions of yt-dlp and the bgutil plugin live in nix/versions.json
+# (bump with scripts/update-versions.sh).
+#
+# Building the image needs a Linux builder: run on Linux, or enable a remote/Linux
+# builder for nix on macOS.
+YT_DLP_VERSION := $(shell jq -r .ytDlp.version nix/versions.json)
 IMAGE := nlopez/media-toolbox
 GHCR_IMAGE := ghcr.io/nlopez/media-toolbox
-PLATFORMS ?= linux/amd64
+SYSTEM ?= x86_64-linux
 TAG := ${YT_DLP_VERSION}
+SHA = $(shell git log -1 --pretty=%h)
 
 tag:
 	@echo $(TAG)
 
+# Builds the image and loads it into docker as $(IMAGE):$(TAG), then adds the other tags.
 build:
-	@docker buildx build \
-		--platform $(PLATFORMS) \
-		--build-arg YT_DLP_VERSION=$(YT_DLP_VERSION) \
-		--build-arg BGUTIL_YTDLP_POT_PROVIDER_VERSION=$(BGUTIL_YTDLP_POT_PROVIDER_VERSION) \
-		--build-arg UID=$(UID) \
-		--build-arg GID=$(GID) \
-		-t $(IMAGE):$(TAG) \
-		-t $(GHCR_IMAGE):$(TAG) \
-		-t $(IMAGE):$(TAG)-$(shell git log -1 --pretty=%h) \
-		-t $(GHCR_IMAGE):$(TAG)-$(shell git log -1 --pretty=%h) \
-		-t $(IMAGE):$(shell git log -1 --pretty=%h) \
-		-t $(GHCR_IMAGE):$(shell git log -1 --pretty=%h) \
-		.
-
-build-no-cache:
-	@docker buildx build --no-cache \
-		--platform $(PLATFORMS) \
-		--build-arg YT_DLP_VERSION=$(YT_DLP_VERSION) \
-		--build-arg BGUTIL_YTDLP_POT_PROVIDER_VERSION=$(BGUTIL_YTDLP_POT_PROVIDER_VERSION) \
-		--build-arg UID=$(UID) \
-		--build-arg GID=$(GID) \
-		-t $(IMAGE):$(TAG) \
-		-t $(GHCR_IMAGE):$(TAG) \
-		-t $(IMAGE):$(TAG)-$(shell git log -1 --pretty=%h) \
-		-t $(GHCR_IMAGE):$(TAG)-$(shell git log -1 --pretty=%h) \
-		-t $(IMAGE):$(shell git log -1 --pretty=%h) \
-		-t $(GHCR_IMAGE):$(shell git log -1 --pretty=%h) \
-		.
+	@nix build .#packages.$(SYSTEM).image --out-link result
+	@./result | docker load
+	@docker tag $(IMAGE):$(TAG) $(GHCR_IMAGE):$(TAG)
+	@docker tag $(IMAGE):$(TAG) $(IMAGE):$(TAG)-$(SHA)
+	@docker tag $(IMAGE):$(TAG) $(GHCR_IMAGE):$(TAG)-$(SHA)
+	@docker tag $(IMAGE):$(TAG) $(IMAGE):$(SHA)
+	@docker tag $(IMAGE):$(TAG) $(GHCR_IMAGE):$(SHA)
 
 push: build
 	@docker push $(IMAGE):$(TAG)
 	@docker push $(GHCR_IMAGE):$(TAG)
-	@docker push $(IMAGE):$(TAG)-$(shell git log -1 --pretty=%h)
-	@docker push $(GHCR_IMAGE):$(TAG)-$(shell git log -1 --pretty=%h)
-	@docker push $(IMAGE):$(shell git log -1 --pretty=%h)
-	@docker push $(GHCR_IMAGE):$(shell git log -1 --pretty=%h)
+	@docker push $(IMAGE):$(TAG)-$(SHA)
+	@docker push $(GHCR_IMAGE):$(TAG)-$(SHA)
+	@docker push $(IMAGE):$(SHA)
+	@docker push $(GHCR_IMAGE):$(SHA)
 
 run: build
 	@docker run -it --entrypoint /bin/bash $(IMAGE):$(TAG)
+
+.PHONY: tag build push run
