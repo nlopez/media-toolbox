@@ -93,6 +93,10 @@ LABEL org.opencontainers.image.description="Media Toolbox: A Docker-based develo
 USER user
 ENV HOME=/home/user
 ENV PATH="${HOME}/.local/bin:${PATH}"
+# bgutil PO token provider plugin for the standalone yt-dlp binary (must match the ytpot server version)
+RUN mkdir -p "${HOME}/.config/yt-dlp/plugins" \
+  && curl -fsSL "https://github.com/Brainicism/bgutil-ytdlp-pot-provider/releases/download/${BGUTIL_YTDLP_POT_PROVIDER_VERSION}/bgutil-ytdlp-pot-provider.zip" \
+    -o "${HOME}/.config/yt-dlp/plugins/bgutil-ytdlp-pot-provider.zip"
 RUN curl -sSfL https://astral.sh/uv/install.sh | sh -s -- --no-modify-path
 RUN --mount=type=cache,target=/home/user/.cache/uv \
   uv tool install --force --no-cache-dir tubeup \
