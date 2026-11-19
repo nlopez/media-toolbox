@@ -7,11 +7,11 @@ on:
   workflow_dispatch:
     inputs:
       yt_dlp_version:
-        description: 'yt-dlp release tag to build (e.g. 2026.08.19). Blank = use the version pinned in nix/versions.json.'
+        description: 'yt-dlp release tag to build (e.g. 2026.08.19). Blank = use the version pinned in the Makefile.'
         required: false
         default: ''
       bgutil_version:
-        description: 'bgutil-ytdlp-pot-provider release tag to build (e.g. 2.0.2). Blank = use the version pinned in nix/versions.json.'
+        description: 'bgutil-ytdlp-pot-provider release tag to build (e.g. 2.0.2). Blank = use the version pinned in the Makefile.'
         required: false
         default: ''
 
@@ -46,8 +46,8 @@ jobs:
           MANUAL_BGUTIL: ${{ github.event.inputs.bgutil_version }}
         run: |
           set -euo pipefail
-          PINNED_YT_DLP=$(jq -r .ytDlp.version nix/versions.json)
-          PINNED_BGUTIL=$(jq -r .bgutil.version nix/versions.json)
+          PINNED_YT_DLP=$(sed -n 's/^YT_DLP_VERSION *:= *//p' Makefile)
+          PINNED_BGUTIL=$(sed -n 's/^BGUTIL_YTDLP_POT_PROVIDER_VERSION *:= *//p' Makefile)
 
           latest() {
             local tag
@@ -75,7 +75,7 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           echo "yt-dlp: $PINNED_YT_DLP -> $YT_DLP | bgutil: $PINNED_BGUTIL -> $BGUTIL | build: $BUILD"
 
-  image:
+  docker:
     needs: check
     if: needs.check.outputs.build == 'true'
     runs-on: ubuntu-latest
@@ -87,85 +87,64 @@ jobs:
         name: Checkout
         uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
       -
-        name: Install Nix
-        uses: cachix/install-nix-action@75c75c31ebece974e48ebc36b4ad125bd97bd97b # v31.11.3
-      -
-        name: Cache Nix store
-        uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7
-        with:
-          # Exact hit when nothing changed; otherwise restore the newest cache and rebuild the delta
-          # (a version bump changes nix/versions.json, so most runs take the prefix fallback).
-          primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', 'nix/**') }}
-          restore-prefixes-first-match: nix-${{ runner.os }}-
-          # Keep the saved store bounded; the closure is ~2.5 GiB.
-          gc-max-store-size-linux: 4G
-          # Drop stale caches so daily keys don't eat the repo's 10 GiB cache quota.
-          purge: true
-          purge-prefixes: nix-${{ runner.os }}-
-          purge-last-accessed: 604800
-      -
-        name: Bump pinned versions in nix/versions.json
+        name: Bump pinned versions in Makefile
         id: bump
         run: |
           set -euo pipefail
-          changed=false
-          if [ "$YT_DLP" != "$(jq -r .ytDlp.version nix/versions.json)" ]; then
-            scripts/update-versions.sh yt-dlp "$YT_DLP"; changed=true
-          fi
-          if [ "$BGUTIL" != "$(jq -r .bgutil.version nix/versions.json)" ]; then
-            scripts/update-versions.sh bgutil "$BGUTIL"; changed=true
-          fi
-          echo "changed=$changed" >> "$GITHUB_OUTPUT"
-          git diff -- nix/versions.json
+          sed -i "s|^YT_DLP_VERSION :=.*|YT_DLP_VERSION := $YT_DLP|" Makefile
+          sed -i "s|^# https://github.com/yt-dlp/yt-dlp/releases/tag/.*|# https://github.com/yt-dlp/yt-dlp/releases/tag/$YT_DLP|" Makefile
+          sed -i "s|^BGUTIL_YTDLP_POT_PROVIDER_VERSION :=.*|BGUTIL_YTDLP_POT_PROVIDER_VERSION := $BGUTIL|" Makefile
+          if git diff --quiet -- Makefile; then echo "changed=false" >> "$GITHUB_OUTPUT"; else echo "changed=true" >> "$GITHUB_OUTPUT"; fi
+          git diff -- Makefile
       -
-        name: Build image
-        run: |
-          set -euo pipefail
-          nix build .#image --print-build-logs --out-link image-stream
-          ./image-stream > image.tar
+        name: Set up QEMU
+        uses: docker/setup-qemu-action@ce360397dd3f832beb865e1373c09c0e9f86d70a
       -
-        name: Smoke test image
-        run: |
-          set -euo pipefail
-          docker load -i image.tar
-          # The image entrypoint is bash, so the arguments below are `bash -c ...`.
-          docker run --rm "nlopez/media-toolbox:${YT_DLP}" \
-            -c 'yt-dlp --version && ffmpeg -version | head -1 && tubeup --help >/dev/null && atuin --version && ls ~/.config/yt-dlp/plugins'
+        name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@d7f5e7f509e45cec5c76c4d5afdd7de93d0b3df5
       -
         name: Login to Docker Hub
-        if: github.ref == 'refs/heads/main'
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee
         with:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
       -
         name: Login to GHCR
-        if: github.ref == 'refs/heads/main'
         uses: docker/login-action@650006c6eb7dba73a995cc03b0b2d7f5ca915bee
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
       -
-        name: Tag and push
-        if: github.ref == 'refs/heads/main'
-        run: |
-          set -euo pipefail
-          TARGET="$YT_DLP"
-          SHA="${{ github.sha }}"
-          # Monotonic tag so Renovate can order builds: <yt-dlp>-<run number>.
-          BUILD_TAG="${TARGET}-${{ github.run_number }}"
-          # `docker push` of a docker-loaded Nix image sends the layers uncompressed (~2.5 GiB).
-          # skopeo gzips them on upload. Push once from the archive, then copy to the other tags.
-          HUB=docker.io/nlopez/media-toolbox
-          GHCR=ghcr.io/nlopez/media-toolbox
-          skopeo copy --retry-times 3 "docker-archive:image.tar" "docker://${HUB}:${TARGET}"
-          skopeo copy --retry-times 3 "docker://${HUB}:${TARGET}" "docker://${HUB}:${BUILD_TAG}"
-          skopeo copy --retry-times 3 "docker://${HUB}:${TARGET}" "docker://${HUB}:${TARGET}-${SHA}"
-          skopeo copy --retry-times 3 "docker://${HUB}:${TARGET}" "docker://${HUB}:${SHA}"
-          for tag in "${TARGET}" "${BUILD_TAG}" "${TARGET}-${SHA}" "${SHA}"; do
-            skopeo copy --retry-times 3 "docker://${HUB}:${TARGET}" "docker://${GHCR}:${tag}"
-          done
+        # <yt-dlp>-<run number> sorts monotonically, so Renovate can order rebuilds of the same
+        # yt-dlp version (bgutil bumps, Dockerfile changes). Commit-SHA tags cannot be ordered.
+        name: Build and push
+        uses: docker/build-push-action@f9f3042f7e2789586610d6e8b85c8f03e5195baf
+        with:
+          push: ${{ github.ref == 'refs/heads/main' }}
+          platforms: linux/amd64
+          tags: |
+            nlopez/media-toolbox:${{ env.YT_DLP }}
+            nlopez/media-toolbox:${{ env.YT_DLP }}-${{ github.run_number }}
+            nlopez/media-toolbox:${{ env.YT_DLP }}-${{ github.sha }}
+            nlopez/media-toolbox:${{ github.sha }}
+            ghcr.io/nlopez/media-toolbox:${{ env.YT_DLP }}
+            ghcr.io/nlopez/media-toolbox:${{ env.YT_DLP }}-${{ github.run_number }}
+            ghcr.io/nlopez/media-toolbox:${{ env.YT_DLP }}-${{ github.sha }}
+            ghcr.io/nlopez/media-toolbox:${{ github.sha }}
+          labels: |
+            org.opencontainers.image.description=Media Toolbox: A Docker-based development environment with audio/video/CLI tools for media processing.
+          build-args: |
+            UID=1001
+            GID=1001
+            YT_DLP_VERSION=${{ env.YT_DLP }}
+            BGUTIL_YTDLP_POT_PROVIDER_VERSION=${{ env.BGUTIL }}
+          cache-from: |
+            type=gha
+            type=registry,ref=nlopez/media-toolbox:build-cache
+          cache-to: |
+            type=gha,mode=max
+            type=registry,ref=nlopez/media-toolbox:build-cache,mode=max
       -
         name: Commit version bump
         if: steps.bump.outputs.changed == 'true' && github.ref == 'refs/heads/main'
@@ -173,6 +152,6 @@ jobs:
           set -euo pipefail
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add nix/versions.json
+          git add Makefile
           git commit -m "chore: bump yt-dlp to $YT_DLP, bgutil to $BGUTIL [skip ci]"
           git push origin HEAD:main
