@@ -3,21 +3,85 @@ name: ci
 on:
   push:
   schedule:
-    - cron: '0 6 * * *'  # daily at 06:00 UTC - check for a new yt-dlp release
+    - cron: '0 6 * * *'  # daily at 06:00 UTC - check for new yt-dlp / bgutil releases
   workflow_dispatch:
     inputs:
       yt_dlp_version:
         description: 'yt-dlp release tag to build (e.g. 2026.08.19). Blank = use the version pinned in nix/versions.json.'
         required: false
         default: ''
+      bgutil_version:
+        description: 'bgutil-ytdlp-pot-provider release tag to build (e.g. 2.0.2). Blank = use the version pinned in nix/versions.json.'
+        required: false
+        default: ''
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false  # never interrupt a push to the registry
 
 permissions:
   contents: write   # push the version-bump commit back to the branch
   packages: write   # push images to GHCR
 
 jobs:
-  image:
+  # Decide what to build. Scheduled runs only build when yt-dlp or the bgutil plugin has a new
+  # release; pushes and manual runs always build.
+  check:
     runs-on: ubuntu-latest
+    outputs:
+      yt_dlp: ${{ steps.resolve.outputs.yt_dlp }}
+      bgutil: ${{ steps.resolve.outputs.bgutil }}
+      build: ${{ steps.resolve.outputs.build }}
+    steps:
+      -
+        name: Checkout
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd
+      -
+        name: Resolve versions
+        id: resolve
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          EVENT: ${{ github.event_name }}
+          MANUAL_YT_DLP: ${{ github.event.inputs.yt_dlp_version }}
+          MANUAL_BGUTIL: ${{ github.event.inputs.bgutil_version }}
+        run: |
+          set -euo pipefail
+          PINNED_YT_DLP=$(jq -r .ytDlp.version nix/versions.json)
+          PINNED_BGUTIL=$(jq -r .bgutil.version nix/versions.json)
+
+          latest() {
+            local tag
+            tag=$(gh api "repos/$1/releases/latest" --jq .tag_name)
+            [ -n "$tag" ] || { echo "::error::could not resolve latest $1 release"; exit 1; }
+            echo "$tag"
+          }
+
+          YT_DLP="${MANUAL_YT_DLP:-$PINNED_YT_DLP}"
+          BGUTIL="${MANUAL_BGUTIL:-$PINNED_BGUTIL}"
+          if [ "$EVENT" = "schedule" ]; then
+            YT_DLP=$(latest yt-dlp/yt-dlp)
+            BGUTIL=$(latest Brainicism/bgutil-ytdlp-pot-provider)
+          fi
+
+          BUILD=true
+          if [ "$EVENT" = "schedule" ] && [ "$YT_DLP" = "$PINNED_YT_DLP" ] && [ "$BGUTIL" = "$PINNED_BGUTIL" ]; then
+            BUILD=false
+          fi
+
+          {
+            echo "yt_dlp=$YT_DLP"
+            echo "bgutil=$BGUTIL"
+            echo "build=$BUILD"
+          } >> "$GITHUB_OUTPUT"
+          echo "yt-dlp: $PINNED_YT_DLP -> $YT_DLP | bgutil: $PINNED_BGUTIL -> $BGUTIL | build: $BUILD"
+
+  image:
+    needs: check
+    if: needs.check.outputs.build == 'true'
+    runs-on: ubuntu-latest
+    env:
+      YT_DLP: ${{ needs.check.outputs.yt_dlp }}
+      BGUTIL: ${{ needs.check.outputs.bgutil }}
     steps:
       -
         name: Checkout
@@ -30,7 +94,7 @@ jobs:
         uses: nix-community/cache-nix-action@7df957e333c1e5da7721f60227dbba6d06080569 # v7
         with:
           # Exact hit when nothing changed; otherwise restore the newest cache and rebuild the delta
-          # (a yt-dlp bump changes nix/versions.json, so most runs take the prefix fallback).
+          # (a version bump changes nix/versions.json, so most runs take the prefix fallback).
           primary-key: nix-${{ runner.os }}-${{ hashFiles('flake.nix', 'flake.lock', 'nix/**') }}
           restore-prefixes-first-match: nix-${{ runner.os }}-
           # Keep the saved store bounded; the closure is ~2.5 GiB.
@@ -40,38 +104,18 @@ jobs:
           purge-prefixes: nix-${{ runner.os }}-
           purge-last-accessed: 604800
       -
-        name: Resolve yt-dlp version
-        id: version
+        name: Bump pinned versions in nix/versions.json
+        id: bump
         run: |
           set -euo pipefail
-          PINNED=$(jq -r .ytDlp.version nix/versions.json)
-          MANUAL="${{ github.event.inputs.yt_dlp_version }}"
-
-          if [ -n "$MANUAL" ]; then
-            TARGET="$MANUAL"
-          elif [ "${{ github.event_name }}" = "schedule" ]; then
-            TARGET=$(curl -sSL --connect-timeout 30 --max-time 60 \
-              -H 'Accept: application/vnd.github+json' \
-              -H 'Authorization: Bearer ${{ secrets.GITHUB_TOKEN }}' \
-              https://api.github.com/repos/yt-dlp/yt-dlp/releases/latest \
-              | jq -r '.tag_name // empty')
-            [ -n "$TARGET" ] || { echo "::error::could not resolve latest yt-dlp release"; exit 1; }
-          else
-            TARGET="$PINNED"
+          changed=false
+          if [ "$YT_DLP" != "$(jq -r .ytDlp.version nix/versions.json)" ]; then
+            scripts/update-versions.sh yt-dlp "$YT_DLP"; changed=true
           fi
-
-          {
-            echo "pinned=$PINNED"
-            echo "target=$TARGET"
-            if [ "$TARGET" != "$PINNED" ]; then echo "changed=true"; else echo "changed=false"; fi
-          } >> "$GITHUB_OUTPUT"
-          echo "Pinned: $PINNED | Target: $TARGET"
-      -
-        name: Bump yt-dlp version in nix/versions.json
-        if: steps.version.outputs.changed == 'true'
-        run: |
-          set -euo pipefail
-          scripts/update-versions.sh yt-dlp "${{ steps.version.outputs.target }}"
+          if [ "$BGUTIL" != "$(jq -r .bgutil.version nix/versions.json)" ]; then
+            scripts/update-versions.sh bgutil "$BGUTIL"; changed=true
+          fi
+          echo "changed=$changed" >> "$GITHUB_OUTPUT"
           git diff -- nix/versions.json
       -
         name: Build image
@@ -85,7 +129,7 @@ jobs:
           set -euo pipefail
           docker load -i image.tar
           # The image entrypoint is bash, so the arguments below are `bash -c ...`.
-          docker run --rm "nlopez/media-toolbox:${{ steps.version.outputs.target }}" \
+          docker run --rm "nlopez/media-toolbox:${YT_DLP}" \
             -c 'yt-dlp --version && ffmpeg -version | head -1 && tubeup --help >/dev/null && atuin --version && ls ~/.config/yt-dlp/plugins'
       -
         name: Login to Docker Hub
@@ -107,26 +151,28 @@ jobs:
         if: github.ref == 'refs/heads/main'
         run: |
           set -euo pipefail
-          TARGET="${{ steps.version.outputs.target }}"
+          TARGET="$YT_DLP"
           SHA="${{ github.sha }}"
+          # Monotonic tag so Renovate can order builds: <yt-dlp>-<run number>.
+          BUILD_TAG="${TARGET}-${{ github.run_number }}"
           # `docker push` of a docker-loaded Nix image sends the layers uncompressed (~2.5 GiB).
           # skopeo gzips them on upload. Push once from the archive, then copy to the other tags.
           HUB=docker.io/nlopez/media-toolbox
           GHCR=ghcr.io/nlopez/media-toolbox
           skopeo copy --retry-times 3 "docker-archive:image.tar" "docker://${HUB}:${TARGET}"
+          skopeo copy --retry-times 3 "docker://${HUB}:${TARGET}" "docker://${HUB}:${BUILD_TAG}"
           skopeo copy --retry-times 3 "docker://${HUB}:${TARGET}" "docker://${HUB}:${TARGET}-${SHA}"
           skopeo copy --retry-times 3 "docker://${HUB}:${TARGET}" "docker://${HUB}:${SHA}"
-          for tag in "${TARGET}" "${TARGET}-${SHA}" "${SHA}"; do
+          for tag in "${TARGET}" "${BUILD_TAG}" "${TARGET}-${SHA}" "${SHA}"; do
             skopeo copy --retry-times 3 "docker://${HUB}:${TARGET}" "docker://${GHCR}:${tag}"
           done
       -
-        name: Commit yt-dlp version bump
-        if: steps.version.outputs.changed == 'true' && github.ref == 'refs/heads/main'
+        name: Commit version bump
+        if: steps.bump.outputs.changed == 'true' && github.ref == 'refs/heads/main'
         run: |
           set -euo pipefail
-          TARGET="${{ steps.version.outputs.target }}"
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add nix/versions.json
-          git commit -m "chore: bump yt-dlp to $TARGET [skip ci]"
+          git commit -m "chore: bump yt-dlp to $YT_DLP, bgutil to $BGUTIL [skip ci]"
           git push origin HEAD:main
